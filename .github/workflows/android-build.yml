@@ -1,0 +1,58 @@
+
+name: Build PojavLauncher APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/android-build.yml"
+      - "app_pojavlauncher/**"
+      - "gradle/**"
+      - "*.gradle"
+      - "settings.gradle"
+      - "gradlew"
+      - "glfw/**"
+      - "sdl/**"
+      - "mojoexec/**"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source and submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build debug APK
+        run: |
+          chmod +x ./gradlew
+          set -o pipefail
+          ./gradlew :app_pojavlauncher:assembleDebug \
+            --no-daemon --stacktrace 2>&1 | tee build.log
+
+      - name: Upload APK and build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pojavlauncher-debug
+          path: |
+            app_pojavlauncher/build/outputs/apk/**/*.apk
+            build.log
+          if-no-files-found: warn
+          retention-days: 3
